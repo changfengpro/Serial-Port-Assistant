@@ -1,10 +1,10 @@
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include "serialhandler.h"
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
 
     // 注册 C++ 类给 QML 使用
     qmlRegisterType<SerialHandler>("com.serial", 1, 0, "SerialHandler");
