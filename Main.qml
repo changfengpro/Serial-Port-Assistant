@@ -88,6 +88,17 @@ ApplicationWindow {
         return "[" + Qt.formatDateTime(new Date(), "hh:mm:ss.zzz") + "] "
     }
 
+    function stripHtml(html) {
+        var plain = html.replace(/<[^>]*>/g, '')  // 移除所有 HTML 标签
+                        .replace(/&nbsp;/g, ' ')  // 替换 &nbsp; 为空格
+                        .replace(/&amp;/g, '&')   // 替换 &amp;
+                        .replace(/&lt;/g, '<')    // 替换 &lt;
+                        .replace(/&gt;/g, '>')    // 替换 &gt;
+                        .replace(/&quot;/g, '"')  // 替换 &quot;
+                        .replace(/&#39;/g, "'");  // 替换 &#39; (单引号)
+        return plain;
+    }
+
     function stringToHex(str) {
         var hex = ""
         for(var i=0; i<str.length; i++) {
@@ -137,7 +148,9 @@ ApplicationWindow {
         nameFilters: ["文本文件 (*.txt)", "日志文件 (*.log)"]
         onAccepted: {
             let path = file.toString().replace("file://", "")
-            serialBackend.saveToFile(path, displayArea.text)
+            // 去除 HTML 标签后保存纯文本
+            let plainText = stripHtml(displayArea.text)
+            serialBackend.saveToFile(path, plainText)
         }
     }
 

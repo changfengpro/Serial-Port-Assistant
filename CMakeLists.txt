@@ -45,3 +45,11 @@ install(TARGETS appSerialPortAssistant
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+
+set(CPACK_GENERATOR "DEB")
+set(CPACK_PACKAGE_NAME "serial-port-assistant")
+set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "changfengpro")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6, libstdc++6, libqt6core6, libqt6widgets6, libqt6serialport6")# 填写基础依赖
+include(CPack)
