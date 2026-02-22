@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
 
     // 修正后的路径加载方式，适配 Qt 6 项目结构
-    const QUrl url(QStringLiteral("qrc:/qt/qml/untitled/Main.qml"));
+    const QUrl url(QStringLiteral("qrc:/qt/qml/SerialPortAssistant/Main.qml"));
 
     QObject::connect(
         &engine,
