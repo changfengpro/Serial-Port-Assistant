@@ -1,6 +1,0 @@
-module untitled
-typeinfo appuntitled.qmltypes
-prefer :/qt/qml/untitled/
-Main 254.0 Main.qml
-depends QtQuick
-

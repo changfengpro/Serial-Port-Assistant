@@ -1,2 +1,0 @@
-set(__QT_DEPLOY_TARGET_appuntitled_FILE /home/rmer/Project/QT_Project/untitled/build/Desktop_Qt_6_10_2-Debug/appuntitled)
-set(__QT_DEPLOY_TARGET_appuntitled_TYPE EXECUTABLE)
