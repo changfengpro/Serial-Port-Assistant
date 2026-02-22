@@ -30,6 +30,7 @@ public:
         return list;
     }
 
+    // 简单版本（仅端口和波特率） - 保留兼容
     Q_INVOKABLE bool openPort(QString name, int baud) {
         if (m_serial->isOpen()) m_serial->close();
         m_serial->setPortName(name);
@@ -63,6 +64,7 @@ public:
         return false;
     }
 
+    // 完整参数版本
     Q_INVOKABLE bool openPort(QString name, int baud, int dataBits, int stopBits, int parity, int flow) {
         if (m_serial->isOpen()) m_serial->close();
 
@@ -98,4 +100,4 @@ private:
     QSerialPort *m_serial;
 };
 
-#endif
+#endif // SERIALHANDLER_H

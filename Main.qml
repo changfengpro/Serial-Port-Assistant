@@ -6,12 +6,13 @@ import com.serial 1.0
 
 ApplicationWindow {
     id: window
-    width: 1100 // 稍微加宽以容纳更多设置项
+    width: 1100
     height: 750
     visible: true
     title: "✨ 串口调试助手 - Wz Blue Protocol ✨"
 
-    // --- 背景层 ---
+    font.family: "Segoe UI Emoji, 'Microsoft YaHei', 'Noto Sans', sans-serif"
+
     Rectangle {
         anchors.fill: parent
         color: "#050b1a"
@@ -32,7 +33,6 @@ ApplicationWindow {
         }
     }
 
-    // --- 逻辑函数 ---
     function getCurrentTime() {
         return "[" + Qt.formatDateTime(new Date(), "hh:mm:ss.zzz") + "] "
     }
@@ -111,7 +111,6 @@ ApplicationWindow {
                 }
                 onClicked: {
                     if(!serialBackend.isOpen) {
-                        // 传递所有串口参数：名称, 波特率, 数据位, 停止位, 校验位, 流控
                         serialBackend.openPort(
                             portBox.currentText,
                             parseInt(baudBox.editText),
@@ -251,7 +250,8 @@ ApplicationWindow {
                     id: receiveScrollView; anchors.fill: parent; clip: true
                     TextArea {
                         id: displayArea; readOnly: true; textFormat: TextEdit.RichText
-                        font.family: "Monospace"; font.pixelSize: 14; color: "#ffffff"
+                        font.family: "Consolas, 'Courier New', monospace"
+                        font.pixelSize: 14; color: "#ffffff"
                         wrapMode: TextArea.WrapAnywhere; background: null
                         onTextChanged: {
                             receiveScrollView.ScrollBar.vertical.position = 1.0 - receiveScrollView.ScrollBar.vertical.size
