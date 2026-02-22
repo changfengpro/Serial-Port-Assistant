@@ -13,6 +13,40 @@ ApplicationWindow {
 
     font.family: "Segoe UI Emoji, 'Microsoft YaHei', 'Noto Sans', sans-serif"
 
+    // ---------- 热修改相关属性与函数 ----------
+    property bool _pendingReopen: false
+
+    Timer {
+        id: reopenTimer
+        interval: 500  // 用户停止修改 500ms 后执行重连
+        onTriggered: {
+            if (serialBackend.isOpen) {
+                serialBackend.closePort()
+                // 短暂延迟确保关闭完成后再打开（但 closePort 通常是同步的，加微小延迟更稳妥）
+                Qt.callLater(function() {
+                    serialBackend.openPort(
+                        portBox.currentText,
+                        parseInt(baudBox.editText),
+                        parseInt(dataBitsBox.currentText),
+                        stopBitsBox.currentIndex,
+                        parityBox.currentIndex,
+                        flowControlBox.currentIndex
+                    )
+                })
+            }
+            _pendingReopen = false
+        }
+    }
+
+    // 辅助函数：标记参数已修改，若串口打开则启动定时器
+    function markSettingsChanged() {
+        if (serialBackend.isOpen) {
+            reopenTimer.restart()
+            _pendingReopen = true
+        }
+    }
+    // ---------------------------------------
+
     Rectangle {
         anchors.fill: parent
         color: "#050b1a"
@@ -168,6 +202,7 @@ ApplicationWindow {
                         id: portBox; Layout.fillWidth: true
                         model: serialBackend.getPortList()
                         onPressedChanged: { if(pressed) model = serialBackend.getPortList() }
+                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
                     }
 
                     Label { text: "波特率:"; color: "#bae6fd" }
@@ -181,6 +216,8 @@ ApplicationWindow {
                             if (currentText !== "Custom") editText = currentText
                             else { editText = ""; focus = true }
                         }
+                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
+                        onEditTextChanged: markSettingsChanged()       // 热修改（处理自定义输入）
                     }
 
                     Label { text: "数据位:"; color: "#bae6fd" }
@@ -188,6 +225,7 @@ ApplicationWindow {
                         id: dataBitsBox; Layout.fillWidth: true
                         model: ["8", "7", "6", "5"]
                         currentIndex: 0
+                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
                     }
 
                     Label { text: "停止位:"; color: "#bae6fd" }
@@ -195,6 +233,7 @@ ApplicationWindow {
                         id: stopBitsBox; Layout.fillWidth: true
                         model: ["1", "1.5", "2"]
                         currentIndex: 0
+                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
                     }
 
                     Label { text: "校验位:"; color: "#bae6fd" }
@@ -202,6 +241,7 @@ ApplicationWindow {
                         id: parityBox; Layout.fillWidth: true
                         model: ["None", "Even", "Odd", "Space", "Mark"]
                         currentIndex: 0
+                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
                     }
 
                     Label { text: "流控:"; color: "#bae6fd" }
@@ -209,6 +249,7 @@ ApplicationWindow {
                         id: flowControlBox; Layout.fillWidth: true
                         model: ["None", "Hardware", "Software"]
                         currentIndex: 0
+                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
                     }
                 }
             }
