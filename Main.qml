@@ -13,8 +13,35 @@ ApplicationWindow {
 
     font.family: "Segoe UI Emoji, 'Microsoft YaHei', 'Noto Sans', sans-serif"
 
-    // ---------- 热修改相关属性与函数 ----------
+    // ---------- 热修改相关 ----------
     property bool _pendingReopen: false
+
+    // 延迟重连定时器：关闭串口后等待50ms再打开，避免资源冲突
+    Timer {
+        id: openAfterCloseTimer
+        interval: 0
+        onTriggered: {
+            if (!serialBackend.isOpen) {
+                var portName = serialBackend.getPortName(portBox.currentIndex)
+                if (portName === "") {
+                    portBox.model = serialBackend.getPortDisplayList()  // 刷新列表
+                    portName = serialBackend.getPortName(portBox.currentIndex)
+                }
+                if (portName !== "") {
+                    serialBackend.openPort(
+                        portName,
+                        parseInt(baudBox.editText),
+                        parseInt(dataBitsBox.currentText),
+                        stopBitsBox.currentIndex,
+                        parityBox.currentIndex,
+                        flowControlBox.currentIndex
+                    )
+                } else {
+                    console.log("热修改失败：无法获取有效的端口名")
+                }
+            }
+        }
+    }
 
     Timer {
         id: reopenTimer
@@ -22,17 +49,7 @@ ApplicationWindow {
         onTriggered: {
             if (serialBackend.isOpen) {
                 serialBackend.closePort()
-                // 短暂延迟确保关闭完成后再打开（但 closePort 通常是同步的，加微小延迟更稳妥）
-                Qt.callLater(function() {
-                    serialBackend.openPort(
-                        portBox.currentText,
-                        parseInt(baudBox.editText),
-                        parseInt(dataBitsBox.currentText),
-                        stopBitsBox.currentIndex,
-                        parityBox.currentIndex,
-                        flowControlBox.currentIndex
-                    )
-                })
+                openAfterCloseTimer.start()  // 延迟打开
             }
             _pendingReopen = false
         }
@@ -45,7 +62,7 @@ ApplicationWindow {
             _pendingReopen = true
         }
     }
-    // ---------------------------------------
+    // ---------------------------------
 
     Rectangle {
         anchors.fill: parent
@@ -145,14 +162,23 @@ ApplicationWindow {
                 }
                 onClicked: {
                     if(!serialBackend.isOpen) {
-                        serialBackend.openPort(
-                            portBox.currentText,
-                            parseInt(baudBox.editText),
-                            parseInt(dataBitsBox.currentText),
-                            stopBitsBox.currentIndex,
-                            parityBox.currentIndex,
-                            flowControlBox.currentIndex
-                        )
+                        var portName = serialBackend.getPortName(portBox.currentIndex)
+                        if (portName === "") {
+                            portBox.model = serialBackend.getPortDisplayList()  // 刷新列表
+                            portName = serialBackend.getPortName(portBox.currentIndex)
+                        }
+                        if (portName !== "") {
+                            serialBackend.openPort(
+                                portName,
+                                parseInt(baudBox.editText),
+                                parseInt(dataBitsBox.currentText),
+                                stopBitsBox.currentIndex,
+                                parityBox.currentIndex,
+                                flowControlBox.currentIndex
+                            )
+                        } else {
+                            console.log("无法打开串口：无效端口名")
+                        }
                     } else {
                         serialBackend.closePort()
                     }
@@ -200,15 +226,14 @@ ApplicationWindow {
                     Label { text: "串口号:"; color: "#bae6fd" }
                     ComboBox {
                         id: portBox; Layout.fillWidth: true
-                        model: serialBackend.getPortList()
-                        onPressedChanged: { if(pressed) model = serialBackend.getPortList() }
-                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
+                        model: serialBackend.getPortDisplayList()  // 显示详细信息
+                        onPressedChanged: { if(pressed) model = serialBackend.getPortDisplayList() }
+                        onCurrentIndexChanged: markSettingsChanged()
                     }
 
                     Label { text: "波特率:"; color: "#bae6fd" }
                     ComboBox {
-                        id: baudBox
-                        Layout.fillWidth: true
+                        id: baudBox; Layout.fillWidth: true
                         model: ["9600", "115200", "57600", "19200", "Custom"]
                         currentIndex: 1
                         editable: currentText === "Custom"
@@ -217,16 +242,16 @@ ApplicationWindow {
                             if (currentText !== "Custom") editText = currentText
                             else { editText = ""; focus = true }
                         }
+                        // 选择预设项时触发
                         onCurrentIndexChanged: {
-                            // 仅在选中预设项（索引 0-3）时触发热修改
                             if (currentIndex >= 0 && currentIndex < 4) {
                                 markSettingsChanged()
                             }
                         }
-                        // 编辑完成时（回车或焦点丢失）触发热修改
-                        onAccepted: markSettingsChanged()  // 按下回车
+                        // 自定义输入完成：按下回车或失去焦点时触发
+                        onAccepted: markSettingsChanged()
                         onActiveFocusChanged: {
-                            if (!activeFocus) markSettingsChanged()  // 焦点丢失
+                            if (!activeFocus) markSettingsChanged()
                         }
                     }
 
@@ -235,7 +260,7 @@ ApplicationWindow {
                         id: dataBitsBox; Layout.fillWidth: true
                         model: ["8", "7", "6", "5"]
                         currentIndex: 0
-                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
+                        onCurrentIndexChanged: markSettingsChanged()
                     }
 
                     Label { text: "停止位:"; color: "#bae6fd" }
@@ -243,7 +268,7 @@ ApplicationWindow {
                         id: stopBitsBox; Layout.fillWidth: true
                         model: ["1", "1.5", "2"]
                         currentIndex: 0
-                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
+                        onCurrentIndexChanged: markSettingsChanged()
                     }
 
                     Label { text: "校验位:"; color: "#bae6fd" }
@@ -251,7 +276,7 @@ ApplicationWindow {
                         id: parityBox; Layout.fillWidth: true
                         model: ["None", "Even", "Odd", "Space", "Mark"]
                         currentIndex: 0
-                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
+                        onCurrentIndexChanged: markSettingsChanged()
                     }
 
                     Label { text: "流控:"; color: "#bae6fd" }
@@ -259,7 +284,7 @@ ApplicationWindow {
                         id: flowControlBox; Layout.fillWidth: true
                         model: ["None", "Hardware", "Software"]
                         currentIndex: 0
-                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
+                        onCurrentIndexChanged: markSettingsChanged()
                     }
                 }
             }

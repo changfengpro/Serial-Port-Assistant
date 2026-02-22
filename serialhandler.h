@@ -6,7 +6,7 @@
 #include <QSerialPortInfo>
 #include <QFile>
 #include <QTextStream>
-#include <QDebug>  // 可选，用于调试输出
+#include <QDebug>
 
 class SerialHandler : public QObject
 {
@@ -22,7 +22,6 @@ public:
                 emit dataReceived(QString::fromUtf8(data));
             }
         });
-        // 可选：连接错误信号以输出调试信息（需要查看控制台）
         connect(m_serial, &QSerialPort::errorOccurred, this, [this](QSerialPort::SerialPortError error){
             if (error != QSerialPort::NoError) {
                 qDebug() << "SerialPort error:" << error;
@@ -32,9 +31,34 @@ public:
 
     bool isOpen() const { return m_serial->isOpen(); }
 
+    // 返回带描述的端口列表，用于显示
+    Q_INVOKABLE QStringList getPortDisplayList() {
+        QStringList list;
+        m_portInfoList = QSerialPortInfo::availablePorts();
+        for (const QSerialPortInfo &info : m_portInfoList) {
+            QString displayName = info.portName();
+            QString desc = info.description();
+            if (!desc.isEmpty()) {
+                displayName += " (" + desc + ")";
+            }
+            list << displayName;
+        }
+        return list;
+    }
+
+    // 根据索引获取实际端口名（用于打开串口）
+    Q_INVOKABLE QString getPortName(int index) {
+        if (index >= 0 && index < m_portInfoList.size()) {
+            return m_portInfoList.at(index).portName();
+        }
+        return QString();
+    }
+
+    // 兼容旧版：返回端口名列表（不带描述），但仍会更新内部列表
     Q_INVOKABLE QStringList getPortList() {
         QStringList list;
-        for (const QSerialPortInfo &info : QSerialPortInfo::availablePorts()) {
+        m_portInfoList = QSerialPortInfo::availablePorts();
+        for (const QSerialPortInfo &info : m_portInfoList) {
             list << info.portName();
         }
         return list;
@@ -49,9 +73,7 @@ public:
         m_serial->setStopBits(QSerialPort::OneStop);
         m_serial->setParity(QSerialPort::NoParity);
         m_serial->setFlowControl(QSerialPort::NoFlowControl);
-
         if (m_serial->open(QIODevice::ReadWrite)) {
-            // 打开后设置 DTR/RTS 并清空缓冲区
             m_serial->setDataTerminalReady(true);
             m_serial->setRequestToSend(true);
             m_serial->clear();
@@ -84,7 +106,7 @@ public:
         return false;
     }
 
-    // 完整参数版本（支持所有设置）
+    // 完整参数版本
     Q_INVOKABLE bool openPort(QString name, int baud, int dataBits, int stopBits, int parity, int flow) {
         if (m_serial->isOpen()) m_serial->close();
 
@@ -93,7 +115,6 @@ public:
         m_serial->setDataBits(static_cast<QSerialPort::DataBits>(dataBits));
         m_serial->setStopBits(static_cast<QSerialPort::StopBits>(stopBits));
 
-        // 校验位映射（QML索引→Qt枚举）
         QSerialPort::Parity parityEnum;
         switch (parity) {
         case 0: parityEnum = QSerialPort::NoParity; break;
@@ -105,15 +126,11 @@ public:
         }
         m_serial->setParity(parityEnum);
 
-        // 流控直接转换
         m_serial->setFlowControl(static_cast<QSerialPort::FlowControl>(flow));
 
-        // 打开串口
         if (m_serial->open(QIODevice::ReadWrite)) {
-            // 打开后设置 DTR/RTS（Windows 下必需）
             m_serial->setDataTerminalReady(true);
             m_serial->setRequestToSend(true);
-            // 清空缓冲区并设置较大缓冲区
             m_serial->clear();
             m_serial->setReadBufferSize(65536);
             emit statusChanged();
@@ -128,6 +145,7 @@ signals:
 
 private:
     QSerialPort *m_serial;
+    QList<QSerialPortInfo> m_portInfoList;  // 缓存端口信息
 };
 
 #endif // SERIALHANDLER_H
