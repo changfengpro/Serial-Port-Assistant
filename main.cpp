@@ -21,7 +21,6 @@ int main(int argc, char *argv[])
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
 
-    // 使用 load 方法加载 url
     engine.load(url);
 
     return app.exec();

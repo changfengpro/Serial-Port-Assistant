@@ -6,10 +6,61 @@ import com.serial 1.0
 
 ApplicationWindow {
     id: window
-    width: 1100 // 稍微加宽以容纳更多设置项
+    width: 1100
     height: 750
     visible: true
     title: "✨ 串口调试助手 - Wz Blue Protocol ✨"
+
+    // ---------- 热修改相关 ----------
+    property bool _pendingReopen: false
+
+    // 延迟重连定时器：关闭串口后等待50ms再打开，避免资源冲突
+    Timer {
+        id: openAfterCloseTimer
+        interval: 0
+        onTriggered: {
+            if (!serialBackend.isOpen) {
+                var portName = serialBackend.getPortName(portBox.currentIndex)
+                if (portName === "") {
+                    portBox.model = serialBackend.getPortDisplayList()  // 刷新列表
+                    portName = serialBackend.getPortName(portBox.currentIndex)
+                }
+                if (portName !== "") {
+                    serialBackend.openPort(
+                        portName,
+                        parseInt(baudBox.editText),
+                        parseInt(dataBitsBox.currentText),
+                        stopBitsBox.currentIndex,
+                        parityBox.currentIndex,
+                        flowControlBox.currentIndex
+                    )
+                } else {
+                    console.log("热修改失败：无法获取有效的端口名")
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: reopenTimer
+        interval: 500  // 用户停止修改 500ms 后执行重连
+        onTriggered: {
+            if (serialBackend.isOpen) {
+                serialBackend.closePort()
+                openAfterCloseTimer.start()  // 延迟打开
+            }
+            _pendingReopen = false
+        }
+    }
+
+    // 辅助函数：标记参数已修改，若串口打开则启动定时器
+    function markSettingsChanged() {
+        if (serialBackend.isOpen) {
+            reopenTimer.restart()
+            _pendingReopen = true
+        }
+    }
+    // ---------------------------------
 
     // --- 背景层 ---
     Rectangle {
@@ -111,15 +162,24 @@ ApplicationWindow {
                 }
                 onClicked: {
                     if(!serialBackend.isOpen) {
-                        // 传递所有串口参数：名称, 波特率, 数据位, 停止位, 校验位, 流控
-                        serialBackend.openPort(
-                            portBox.currentText,
-                            parseInt(baudBox.editText),
-                            parseInt(dataBitsBox.currentText),
-                            stopBitsBox.currentIndex,
-                            parityBox.currentIndex,
-                            flowControlBox.currentIndex
-                        )
+                        // 获取真实端口名
+                        var portName = serialBackend.getPortName(portBox.currentIndex)
+                        if (portName === "") {
+                            portBox.model = serialBackend.getPortDisplayList()  // 刷新列表
+                            portName = serialBackend.getPortName(portBox.currentIndex)
+                        }
+                        if (portName !== "") {
+                            serialBackend.openPort(
+                                portName,
+                                parseInt(baudBox.editText),
+                                parseInt(dataBitsBox.currentText),
+                                stopBitsBox.currentIndex,
+                                parityBox.currentIndex,
+                                flowControlBox.currentIndex
+                            )
+                        } else {
+                            console.log("无法打开串口：无效端口名")
+                        }
                     } else {
                         serialBackend.closePort()
                     }
@@ -167,8 +227,9 @@ ApplicationWindow {
                     Label { text: "串口号:"; color: "#bae6fd" }
                     ComboBox {
                         id: portBox; Layout.fillWidth: true
-                        model: serialBackend.getPortList()
-                        onPressedChanged: { if(pressed) model = serialBackend.getPortList() }
+                        model: serialBackend.getPortDisplayList()  // 显示详细信息
+                        onPressedChanged: { if(pressed) model = serialBackend.getPortDisplayList() }
+                        onCurrentIndexChanged: markSettingsChanged()
                     }
 
                     Label { text: "波特率:"; color: "#bae6fd" }
@@ -182,6 +243,17 @@ ApplicationWindow {
                             if (currentText !== "Custom") editText = currentText
                             else { editText = ""; focus = true }
                         }
+                        // 选择预设项时触发
+                        onCurrentIndexChanged: {
+                            if (currentIndex >= 0 && currentIndex < 4) {
+                                markSettingsChanged()
+                            }
+                        }
+                        // 自定义输入完成：按下回车或失去焦点时触发
+                        onAccepted: markSettingsChanged()
+                        onActiveFocusChanged: {
+                            if (!activeFocus) markSettingsChanged()
+                        }
                     }
 
                     Label { text: "数据位:"; color: "#bae6fd" }
@@ -189,6 +261,7 @@ ApplicationWindow {
                         id: dataBitsBox; Layout.fillWidth: true
                         model: ["8", "7", "6", "5"]
                         currentIndex: 0
+                        onCurrentIndexChanged: markSettingsChanged()
                     }
 
                     Label { text: "停止位:"; color: "#bae6fd" }
@@ -196,6 +269,7 @@ ApplicationWindow {
                         id: stopBitsBox; Layout.fillWidth: true
                         model: ["1", "1.5", "2"]
                         currentIndex: 0
+                        onCurrentIndexChanged: markSettingsChanged()
                     }
 
                     Label { text: "校验位:"; color: "#bae6fd" }
@@ -203,6 +277,7 @@ ApplicationWindow {
                         id: parityBox; Layout.fillWidth: true
                         model: ["None", "Even", "Odd", "Space", "Mark"]
                         currentIndex: 0
+                        onCurrentIndexChanged: markSettingsChanged()
                     }
 
                     Label { text: "流控:"; color: "#bae6fd" }
@@ -210,6 +285,7 @@ ApplicationWindow {
                         id: flowControlBox; Layout.fillWidth: true
                         model: ["None", "Hardware", "Software"]
                         currentIndex: 0
+                        onCurrentIndexChanged: markSettingsChanged()
                     }
                 }
             }
