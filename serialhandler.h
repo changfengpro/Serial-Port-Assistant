@@ -63,6 +63,33 @@ public:
         return false;
     }
 
+    Q_INVOKABLE bool openPort(QString name, int baud, int dataBits, int stopBits, int parity, int flow) {
+        if (m_serial->isOpen()) m_serial->close();
+
+        m_serial->setPortName(name);
+        m_serial->setBaudRate(baud);
+
+        // 设置数据位
+        m_serial->setDataBits(static_cast<QSerialPort::DataBits>(dataBits));
+
+        // 设置停止位 (QML 索引对应: 0:1, 1:1.5, 2:2)
+        if (stopBits == 0) m_serial->setStopBits(QSerialPort::OneStop);
+        else if (stopBits == 1) m_serial->setStopBits(QSerialPort::OneAndHalfStop);
+        else m_serial->setStopBits(QSerialPort::TwoStop);
+
+        // 设置校验位 (QML 索引对应: 0:None, 1:Even, 2:Odd...)
+        m_serial->setParity(static_cast<QSerialPort::Parity>(parity));
+
+        // 设置流控 (QML 索引对应: 0:None, 1:Hardware, 2:Software)
+        m_serial->setFlowControl(static_cast<QSerialPort::FlowControl>(flow));
+
+        if (m_serial->open(QIODevice::ReadWrite)) {
+            emit statusChanged();
+            return true;
+        }
+        return false;
+    }
+
 signals:
     void dataReceived(QString data);
     void statusChanged();

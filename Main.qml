@@ -6,8 +6,8 @@ import com.serial 1.0
 
 ApplicationWindow {
     id: window
-    width: 1000
-    height: 700
+    width: 1100 // 稍微加宽以容纳更多设置项
+    height: 750
     visible: true
     title: "✨ 串口调试助手 - Wz Blue Protocol ✨"
 
@@ -111,7 +111,15 @@ ApplicationWindow {
                 }
                 onClicked: {
                     if(!serialBackend.isOpen) {
-                        serialBackend.openPort(portBox.currentText, parseInt(baudBox.currentText))
+                        // 传递所有串口参数：名称, 波特率, 数据位, 停止位, 校验位, 流控
+                        serialBackend.openPort(
+                            portBox.currentText,
+                            parseInt(baudBox.editText),
+                            parseInt(dataBitsBox.currentText),
+                            stopBitsBox.currentIndex,
+                            parityBox.currentIndex,
+                            flowControlBox.currentIndex
+                        )
                     } else {
                         serialBackend.closePort()
                     }
@@ -141,28 +149,67 @@ ApplicationWindow {
         orientation: Qt.Horizontal
 
         ColumnLayout {
-            SplitView.preferredWidth: 240
+            SplitView.preferredWidth: 260
             SplitView.fillWidth: false
-            spacing: 20
+            spacing: 15
 
             GroupBox {
                 id: configGroup
                 title: "💠 串口设置"; Layout.fillWidth: true
                 background: Rectangle { color: "#0f172ae6"; radius: 12; border.color: "#38bdf8"; border.width: 1 }
                 label: Text { text: configGroup.title; color: "#38bdf8"; font.bold: true; padding: 5 }
-                ColumnLayout {
-                    anchors.fill: parent; spacing: 10
+                GridLayout {
+                    anchors.fill: parent
+                    columns: 2
+                    columnSpacing: 10
+                    rowSpacing: 8
+
                     Label { text: "串口号:"; color: "#bae6fd" }
                     ComboBox {
                         id: portBox; Layout.fillWidth: true
                         model: serialBackend.getPortList()
                         onPressedChanged: { if(pressed) model = serialBackend.getPortList() }
                     }
+
                     Label { text: "波特率:"; color: "#bae6fd" }
                     ComboBox {
                         id: baudBox; Layout.fillWidth: true
-                        model: ["9600", "115200", "57600", "19200"]
+                        model: ["9600", "115200", "57600", "19200", "Custom"]
                         currentIndex: 1
+                        editable: currentText === "Custom"
+                        validator: IntValidator { bottom: 0; top: 10000000 }
+                        onCurrentTextChanged: {
+                            if (currentText !== "Custom") editText = currentText
+                            else { editText = ""; focus = true }
+                        }
+                    }
+
+                    Label { text: "数据位:"; color: "#bae6fd" }
+                    ComboBox {
+                        id: dataBitsBox; Layout.fillWidth: true
+                        model: ["8", "7", "6", "5"]
+                        currentIndex: 0
+                    }
+
+                    Label { text: "停止位:"; color: "#bae6fd" }
+                    ComboBox {
+                        id: stopBitsBox; Layout.fillWidth: true
+                        model: ["1", "1.5", "2"]
+                        currentIndex: 0
+                    }
+
+                    Label { text: "校验位:"; color: "#bae6fd" }
+                    ComboBox {
+                        id: parityBox; Layout.fillWidth: true
+                        model: ["None", "Even", "Odd", "Space", "Mark"]
+                        currentIndex: 0
+                    }
+
+                    Label { text: "流控:"; color: "#bae6fd" }
+                    ComboBox {
+                        id: flowControlBox; Layout.fillWidth: true
+                        model: ["None", "Hardware", "Software"]
+                        currentIndex: 0
                     }
                 }
             }
