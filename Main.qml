@@ -207,7 +207,8 @@ ApplicationWindow {
 
                     Label { text: "波特率:"; color: "#bae6fd" }
                     ComboBox {
-                        id: baudBox; Layout.fillWidth: true
+                        id: baudBox
+                        Layout.fillWidth: true
                         model: ["9600", "115200", "57600", "19200", "Custom"]
                         currentIndex: 1
                         editable: currentText === "Custom"
@@ -216,8 +217,17 @@ ApplicationWindow {
                             if (currentText !== "Custom") editText = currentText
                             else { editText = ""; focus = true }
                         }
-                        onCurrentIndexChanged: markSettingsChanged()   // 热修改
-                        onEditTextChanged: markSettingsChanged()       // 热修改（处理自定义输入）
+                        onCurrentIndexChanged: {
+                            // 仅在选中预设项（索引 0-3）时触发热修改
+                            if (currentIndex >= 0 && currentIndex < 4) {
+                                markSettingsChanged()
+                            }
+                        }
+                        // 编辑完成时（回车或焦点丢失）触发热修改
+                        onAccepted: markSettingsChanged()  // 按下回车
+                        onActiveFocusChanged: {
+                            if (!activeFocus) markSettingsChanged()  // 焦点丢失
+                        }
                     }
 
                     Label { text: "数据位:"; color: "#bae6fd" }
