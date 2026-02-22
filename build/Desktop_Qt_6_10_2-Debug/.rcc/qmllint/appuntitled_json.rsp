@@ -1,0 +1,16 @@
+--bare
+-I
+/home/rmer/Project/QT_Project/untitled/build/Desktop_Qt_6_10_2-Debug
+-I
+/home/rmer/Project/QT_Project/untitled/build/Desktop_Qt_6_10_2-Debug/untitled
+-I
+/home/rmer/Project/QT_Project/untitled/build/Desktop_Qt_6_10_2-Debug
+-I
+/home/rmer/Qt/6.10.2/gcc_64/qml
+--resource
+/home/rmer/Project/QT_Project/untitled/build/Desktop_Qt_6_10_2-Debug/.qt/rcc/qmake_untitled.qrc
+--resource
+/home/rmer/Project/QT_Project/untitled/build/Desktop_Qt_6_10_2-Debug/.qt/rcc/appuntitled_raw_qml_0.qrc
+/home/rmer/Project/QT_Project/untitled/Main.qml
+--json
+/home/rmer/Project/QT_Project/untitled/build/Desktop_Qt_6_10_2-Debug/appuntitled_qmllint.json
